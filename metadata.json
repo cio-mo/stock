@@ -1,0 +1,6 @@
+{
+  "name": "ระบบจัดการสต๊อกสินค้าและขนส่ง",
+  "description": "ระบบจัดการสต๊อกสินค้า นำเข้า-ส่งออกสินค้า เชื่อมต่อ Google Sheets และรองรับการทำ LINE Bot ดึงข้อมูลสต๊อกคงเหลือและข้อมูลการขนส่งแบบเรียลไทม์",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
