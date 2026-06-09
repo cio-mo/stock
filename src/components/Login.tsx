@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { SystemConfig, User } from "../types";
-import { KeyRound, User as UserIcon, LogIn, Lock, ArrowLeft, RefreshCw, BadgeHelp, CheckCircle2 } from "lucide-react";
+import { KeyRound, User as UserIcon, LogIn, Lock, ArrowLeft, RefreshCw, BadgeHelp, CheckCircle2, Settings2, Globe } from "lucide-react";
 import { apiFetch } from "../utils";
 
 interface LoginProps {
@@ -13,6 +13,16 @@ export default function Login({ config, onLoginSuccess }: LoginProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   
+  // API settings for Vercel/External host deployment
+  const [showApiConfig, setShowApiConfig] = useState(
+    typeof window !== "undefined" && 
+    (window.location.hostname.includes("vercel") || window.location.hostname.includes("github.io"))
+  );
+  const [backendUrlInput, setBackendUrlInput] = useState(
+    localStorage.getItem("backend_api_url") || ""
+  );
+  const [apiSaveFeedback, setApiSaveFeedback] = useState<string | null>(null);
+
   // Register fields
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
@@ -442,6 +452,97 @@ export default function Login({ config, onLoginSuccess }: LoginProps) {
           )}
 
         </div>
+
+        {/* API Settings configuration block specialized for Vercel/External host */}
+        <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-slate-200/50 dark:border-slate-800/50 shadow-sm text-xs text-left">
+            <button
+              type="button"
+              onClick={() => setShowApiConfig(!showApiConfig)}
+              className="w-full flex items-center justify-between text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold transition-all cursor-pointer"
+            >
+              <span className="flex items-center space-x-1.5">
+                <Settings2 className="w-4 h-4 text-indigo-500" />
+                <span>⚙️ ตั้งค่า API Server (สำหรับ Vercel / Live Server)</span>
+              </span>
+              <span>{showApiConfig ? "ซ่อน ▲" : "แสดง ▼"}</span>
+            </button>
+            
+            {showApiConfig && (
+              <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-fade-in font-sans">
+                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                  หากนำระบบนี้ขึ้นระบบภายนอกเช่น Vercel และพบปัญหาเข้าสู่ระบบไม่ได้ กรุณาระบุรหัส URL ของ Cloud Run หลังบ้าน (เช่น <code className="font-mono bg-slate-100 dark:bg-slate-800 text-indigo-600 px-1 py-0.5 rounded">https://...run.app</code>) เพื่อให้ระบบส่งคำสั่งเชื่อมฐานข้อมูลและดึงรายชื่อพนักงานได้ถูกต้อง
+                </p>
+                <div>
+                  <label className="block font-bold text-slate-400 uppercase mb-1.5">
+                    Cloud Run API Base URL *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-450">
+                      <Globe className="h-4 w-4 text-indigo-400" />
+                    </div>
+                    <input
+                      id="input-vercel-api-endpoint"
+                      type="url"
+                      placeholder="เช่น https://ais-dev-efoukm...run.app"
+                      value={backendUrlInput}
+                      onChange={(e) => setBackendUrlInput(e.target.value)}
+                      className="block w-full pl-9 pr-3 py-2.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all text-slate-800 dark:text-slate-200 placeholder:text-slate-300"
+                    />
+                  </div>
+                </div>
+
+                {apiSaveFeedback && (
+                  <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {apiSaveFeedback}
+                  </p>
+                )}
+
+                <div className="flex space-x-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!backendUrlInput) {
+                        localStorage.removeItem("backend_api_url");
+                        setApiSaveFeedback("✅ รีเซ็ตการเชื่อมต่อเป็นแบบเซิร์ฟเวอร์เดียวกันแล้ว!");
+                      } else {
+                        // Clean/Normalize URL
+                        let cleanUrl = backendUrlInput.trim();
+                        if (cleanUrl && !cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+                          cleanUrl = "https://" + cleanUrl;
+                          setBackendUrlInput(cleanUrl);
+                        }
+                        localStorage.setItem("backend_api_url", cleanUrl);
+                        setApiSaveFeedback("✅ บันทึกที่อยู่เชื่อมต่อสำเร็จ! กำลังรีโหลดเพจ...");
+                      }
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 1200);
+                    }}
+                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-center transition-all cursor-pointer"
+                  >
+                    บันทึก & รีโหลดแอป
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem("backend_api_url");
+                      setBackendUrlInput("");
+                      setApiSaveFeedback("✅ รีเซ็ตใช้ค่าเริ่มต้นสำเร็จ! กำลังรีโหลดเพจ...");
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 1200);
+                    }}
+                    className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all cursor-pointer"
+                  >
+                    ล้างค่า
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
