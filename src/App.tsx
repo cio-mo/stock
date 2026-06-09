@@ -93,14 +93,14 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem("session_username");
     try {
-      localStorage.removeItem("session_username");
       await apiFetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
-      setView("dashboard");
     } catch (e) {
-      console.error("Logout issue", e);
+      console.error("Logout network issue (proceeding with local clear):", e);
     }
+    setUser(null);
+    setView("dashboard");
   };
 
   const handleConfigChanged = (newConfig: SystemConfig) => {

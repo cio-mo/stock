@@ -20,6 +20,24 @@ const CONFIG_FILE = path.join(DATA_DIR, "config.json");
 app.use(express.json());
 app.use(cookieParser());
 
+// Custom CORS middleware to support external front-end deployment (e.g., Vercel)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-session-username, bypass-admin-check-for-register, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Bootstrap database files
 function ensureDatabaseExists() {
   if (!fs.existsSync(DATA_DIR)) {
