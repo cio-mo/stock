@@ -33,25 +33,32 @@ export default function App() {
     setDataError(null);
     try {
       // 1. Load Custom System Branding
-      const configRes = await apiFetch("/api/config");
-      if (configRes.ok) {
-        const configData = await configRes.json();
-        setConfig(configData);
+      try {
+        const configRes = await apiFetch("/api/config");
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          setConfig(configData);
+        }
+      } catch (configErr: any) {
+        console.warn("Could not load initial config (ignore if backend not configured on static host yet):", configErr.message);
       }
 
       // 2. Validate session cookie via GET me
-      const authRes = await apiFetch("/api/auth/me");
-      if (authRes.ok) {
-        const authData = await authRes.json();
-        if (authData.user) {
-          setUser(authData.user);
-          // Load active stocks indices
-          await loadInventoryData();
+      try {
+        const authRes = await apiFetch("/api/auth/me");
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          if (authData.user) {
+            setUser(authData.user);
+            // Load active stocks indices
+            await loadInventoryData();
+          }
         }
+      } catch (authErr: any) {
+        console.warn("Could not validate active session during boot:", authErr.message);
       }
     } catch (err: any) {
-      console.error("App boot failure:", err.message);
-      setDataError("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์หลักพอร์ต 3000");
+      console.error("Critical app boot failure:", err.message);
     } finally {
       setAppLoading(false);
     }

@@ -208,6 +208,18 @@ export default function Login({ config, onLoginSuccess }: LoginProps) {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div id="login-card-body" className={`py-8 px-6 sm:px-10 rounded-2xl border transition-all duration-300 ${theme.card}`}>
           
+          {/* Detect unconfigured static deployment warning */}
+          {typeof window !== "undefined" && 
+           (window.location.hostname.includes("vercel") || window.location.hostname.includes("github.io")) && 
+           !localStorage.getItem("backend_api_url") && (
+            <div className="mb-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-400 text-xs leading-relaxed space-y-1">
+              <p className="font-bold flex items-center space-x-1">
+                <span>⚠️ ตรวจพบแอปพลิเคชันทำงานบน Vercel</span>
+              </p>
+              <p>กรุณาระบุที่อยู่เซิร์ฟเวอร์หลัก (Cloud Run API Base URL) ในแถบเมนู <b>"⚙️ ตั้งค่า API Server ... "</b> ด้านล่างการ์ดนี้เพื่อให้ระบบสามารถเชื่อมต่อข้อมูลสต็อกสินค้าและสมาชิกพนักงานได้อย่างถูกต้องค่ะ</p>
+            </div>
+          )}
+
           {/* Feedback alerts */}
           {feedback && (
             <div
