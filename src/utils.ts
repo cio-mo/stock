@@ -4,6 +4,56 @@
  */
 
 /**
+ * Sanitizes and extracts the base domain (origin) from any input URL.
+ * Handles messy inputs, trailing routes, etc., preventing invalid JSON formatting issues.
+ */
+export function sanitizeBackendUrl(url: string): string {
+  if (!url) return "";
+  let clean = url.trim();
+  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+    clean = "https://" + clean;
+  }
+  try {
+    const parsed = new URL(clean);
+    return parsed.origin; // Returns "https://domain.com" cleanly
+  } catch (e) {
+    if (clean.endsWith("/")) {
+      clean = clean.slice(0, -1);
+    }
+    return clean;
+  }
+}
+
+// ⚡ Dynamic Auto-Connection Hook: Parse backend URL parameters on load
+if (typeof window !== "undefined") {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const autoUrl = params.get("api") || params.get("backend") || params.get("backend_url") || params.get("server");
+    if (autoUrl) {
+      const cleanUrl = sanitizeBackendUrl(autoUrl);
+      if (cleanUrl) {
+        localStorage.setItem("backend_api_url", cleanUrl);
+        console.log("⚡ [PRO AUTO-CONNECT] Configured endpoint target to:", cleanUrl);
+        
+        // Remove config parameters to keep url address bar clean
+        params.delete("api");
+        params.delete("backend");
+        params.delete("backend_url");
+        params.delete("server");
+        const cleanSearch = params.toString();
+        const newUrl = window.location.pathname + (cleanSearch ? "?" + cleanSearch : "") + window.location.hash;
+        window.history.replaceState({}, "", newUrl);
+        
+        // Trigger a simple reload to apply newly registered URL cleanly
+        window.location.reload();
+      }
+    }
+  } catch (err) {
+    console.error("Auto detect query URL parsing errored", err);
+  }
+}
+
+/**
  * Universal fetch wrapper to safely handle session header injection and
  * dynamic routing of backend requests when hosted on static services like Vercel.
  */
@@ -13,8 +63,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   if (url.startsWith("/api/")) {
     const backendUrl = localStorage.getItem("backend_api_url") || "";
     if (backendUrl) {
-      // Remove trailing slash if present
-      const cleanBackend = backendUrl.endsWith("/") ? backendUrl.slice(0, -1) : backendUrl;
+      const cleanBackend = sanitizeBackendUrl(backendUrl);
       url = cleanBackend + url;
     }
     
@@ -34,7 +83,15 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
     }
   }
   
-  const res = await fetch(url, init);
+  let res;
+  try {
+    res = await fetch(url, init);
+  } catch (networkError: any) {
+    // Gracefully capture offline/DNS failure
+    throw new Error(
+      `ไม่สามารถเชื่อมต่อกับเครื่องแม่ข่าย API ได้ กรุณาเชื่อมอินเทอร์เน็ตหรือตรวจสอบว่าเซิร์ฟเวอร์ปลายทางเปิดทำงานถูกต้องอยู่หรือไม่ (${networkError.message})`
+    );
+  }
   
   // Custom interceptor on the json() parser to trap static host HTML 450/404 errors
   const originalJson = res.json.bind(res);

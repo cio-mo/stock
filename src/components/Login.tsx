@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { SystemConfig, User } from "../types";
 import { KeyRound, User as UserIcon, LogIn, Lock, ArrowLeft, RefreshCw, BadgeHelp, CheckCircle2, Settings2, Globe } from "lucide-react";
-import { apiFetch } from "../utils";
+import { apiFetch, sanitizeBackendUrl } from "../utils";
 
 interface LoginProps {
   config: SystemConfig;
@@ -212,11 +212,40 @@ export default function Login({ config, onLoginSuccess }: LoginProps) {
           {typeof window !== "undefined" && 
            (window.location.hostname.includes("vercel") || window.location.hostname.includes("github.io")) && 
            !localStorage.getItem("backend_api_url") && (
-            <div className="mb-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-400 text-xs leading-relaxed space-y-1">
-              <p className="font-bold flex items-center space-x-1">
-                <span>⚠️ ตรวจพบแอปพลิเคชันทำงานบน Vercel</span>
+            <div className="mb-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-250 dark:border-amber-900 text-amber-800 dark:text-amber-400 text-xs leading-relaxed space-y-3">
+              <p className="font-bold flex items-center space-x-1.5 text-amber-900 dark:text-amber-300">
+                <span className="text-base">⚠️</span>
+                <span>ตรวจพบระบบทำงานอยู่ภายนอก (เช่น Vercel)</span>
               </p>
-              <p>กรุณาระบุที่อยู่เซิร์ฟเวอร์หลัก (Cloud Run API Base URL) ในแถบเมนู <b>"⚙️ ตั้งค่า API Server ... "</b> ด้านล่างการ์ดนี้เพื่อให้ระบบสามารถเชื่อมต่อข้อมูลสต็อกสินค้าและสมาชิกพนักงานได้อย่างถูกต้องค่ะ</p>
+              <p className="text-amber-800/95 dark:text-amber-400/95">
+                กรุณาวาง <b>URL เครื่องแม่ข่ายหลัก (Cloud Run)</b> ในช่องด้านล่างเพื่อเชื่อมต่อระบบฐานข้อมูลสต็อกสินค้าของท่านอัตโนมัติ:
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="วาง URL ที่นี่ เช่น https://ais-dev-...run.app"
+                  className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-lg outline-none text-slate-800 dark:text-slate-200"
+                  onChange={(e) => setBackendUrlInput(e.target.value)}
+                  value={backendUrlInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (backendUrlInput.trim()) {
+                      const cleanUrl = sanitizeBackendUrl(backendUrlInput);
+                      localStorage.setItem("backend_api_url", cleanUrl);
+                      alert(`🎉 บันทึกการเชื่อมต่อแล้ว เรียบร้อยระบบจะทำการรีโหลดหน้าจอใหม่`);
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-center transition-all cursor-pointer shadow-sm text-xs shrink-0"
+                >
+                  เชื่อมต่อด่วน
+                </button>
+              </div>
+              <p className="text-[10px] text-amber-600/95 dark:text-amber-500/95">
+                💡 <b>ทางลัดความปลอดภัย:</b> สามารถเรียกลิงก์ง่ายๆ โดยใส่ <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded text-amber-700 dark:text-amber-400">?api=ที่อยู่หลังบ้าน</code> ท้ายสุดของโดเมนท่าน แล้วกดเปิดลิงก์ ระบบจะจำค่าเชื่อมต่อให้อัตโนมัติทันที
+              </p>
             </div>
           )}
 
@@ -514,18 +543,14 @@ export default function Login({ config, onLoginSuccess }: LoginProps) {
                   <button
                     type="button"
                     onClick={() => {
-                      if (!backendUrlInput) {
+                      if (!backendUrlInput.trim()) {
                         localStorage.removeItem("backend_api_url");
                         setApiSaveFeedback("✅ รีเซ็ตการเชื่อมต่อเป็นแบบเซิร์ฟเวอร์เดียวกันแล้ว!");
                       } else {
-                        // Clean/Normalize URL
-                        let cleanUrl = backendUrlInput.trim();
-                        if (cleanUrl && !cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-                          cleanUrl = "https://" + cleanUrl;
-                          setBackendUrlInput(cleanUrl);
-                        }
+                        const cleanUrl = sanitizeBackendUrl(backendUrlInput);
+                        setBackendUrlInput(cleanUrl);
                         localStorage.setItem("backend_api_url", cleanUrl);
-                        setApiSaveFeedback("✅ บันทึกที่อยู่เชื่อมต่อสำเร็จ! กำลังรีโหลดเพจ...");
+                        setApiSaveFeedback(`✅ บันทึกที่อยู่ป้ายหลังบ้านสำเร็จ (${cleanUrl})! กำลังรีโหลด...`);
                       }
                       setTimeout(() => {
                         window.location.reload();
